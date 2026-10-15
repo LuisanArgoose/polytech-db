@@ -25,3 +25,21 @@ SELECT
 FROM "TeacherExamLoad"
 GROUP BY "Id", "FullName"
 ORDER BY "Работ к проверке" DESC, "Преподаватель";
+
+-- 2. Сводка по факультетам за январь.
+-- Окно: экзамены с датой в январе любого года.
+
+SELECT DISTINCT
+    f."Name" AS "Факультет",
+    COUNT(g."Id") OVER (PARTITION BY f."Id") AS "Количество групп",
+    SUM(g."StudentCount") OVER (PARTITION BY f."Id") AS "Количество студентов",
+    COUNT(e."Id") OVER (PARTITION BY f."Id") AS "Количество экзаменов",
+    COUNT(e."TeacherId") OVER (PARTITION BY f."Id") AS "Количество преподавателей"
+FROM exam."Faculties" AS f
+JOIN exam."StudentGroups" AS g
+    ON g."FacultyId" = f."Id"
+JOIN exam."ExamSessions" AS e
+    ON e."StudentGroupId" = g."Id"
+   AND EXTRACT(MONTH FROM e."ExamDate") = 1
+ORDER BY "Факультет";
+
