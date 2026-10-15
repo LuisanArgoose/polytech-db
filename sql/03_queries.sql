@@ -97,13 +97,12 @@ ORDER BY
 
 -- 4. Расписание экзаменов групп.
 -- Строка расписания: группа, предмет, форма контроля и дата.
--- Число испытаний группы считается для сортировки и в вывод не попадает.
+-- Сначала строки собираются по группе, внутри группы — по дате экзамена.
 
 WITH "GroupExams" AS (
     SELECT
         g."Id" AS "GroupId",
-        COUNT(e."Id") AS "ExamCount",
-        MIN(e."ExamDate") AS "FirstExamDate"
+        COUNT(e."Id") AS "ExamCount"
     FROM exam."StudentGroups" AS g
     JOIN exam."ExamSessions" AS e
         ON e."StudentGroupId" = g."Id"
@@ -115,8 +114,6 @@ WITH "GroupExams" AS (
         s."SubjectName",
         e."AssessmentType",
         e."ExamDate",
-        ge."ExamCount",
-        ge."FirstExamDate",
         ROW_NUMBER() OVER (
             PARTITION BY g."Id"
             ORDER BY e."ExamDate", s."SubjectName"
@@ -135,5 +132,5 @@ SELECT
     "AssessmentType" AS "Тип экзамена",
     "ExamDate" AS "Дата"
 FROM "GroupSchedule"
-ORDER BY "ExamCount" DESC, "FirstExamDate", "Группа", "ExamNumber";
+ORDER BY "Группа", "Дата", "ExamNumber";
 
