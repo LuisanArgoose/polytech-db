@@ -1,45 +1,23 @@
 \babel@toc {russian}{}\relax 
-\contentsline {section}{Введение}{3}{section*.2}%
-\contentsline {section}{\numberline {1}Задание 1.1. Проектирование схемы}{3}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Постановка}{3}{subsection.1.1}%
-\contentsline {subsection}{\numberline {1.2}Назначение базы}{3}{subsection.1.2}%
-\contentsline {subsection}{\numberline {1.3}Сущности}{3}{subsection.1.3}%
-\contentsline {section}{\numberline {2}Задание 1.2. Создание и заполнение таблиц}{4}{section.2}%
-\contentsline {subsection}{\numberline {2.1}Постановка}{4}{subsection.2.1}%
-\contentsline {subsection}{\numberline {2.2}DDL}{4}{subsection.2.2}%
-\contentsline {subsection}{\numberline {2.3}Данные}{5}{subsection.2.3}%
-\contentsline {section}{\numberline {3}Задание 1.3. Операторы манипулирования}{7}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Постановка}{7}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}Выборка 1. Нагрузка преподавателя}{7}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Выборка 2. Дисциплины без сессии}{8}{subsection.3.3}%
-\contentsline {subsection}{\numberline {3.4}Выборка 3. Рейтинг групп}{8}{subsection.3.4}%
-\contentsline {subsection}{\numberline {3.5}Выборка 4. Ближайший контроль}{9}{subsection.3.5}%
-\contentsline {subsection}{\numberline {3.6}Изменение 1. Перевод четвёртого курса}{9}{subsection.3.6}%
-\contentsline {subsection}{\numberline {3.7}Изменение 2. Дифференцированный зачёт}{10}{subsection.3.7}%
-\contentsline {subsection}{\numberline {3.8}Вставка 1. Новая дисциплина и зачёт}{10}{subsection.3.8}%
-\contentsline {subsection}{\numberline {3.9}Вставка 2. Пересдача баз данных}{11}{subsection.3.9}%
-\contentsline {subsection}{\numberline {3.10}Удаление 1. Снятие пересдачи}{11}{subsection.3.10}%
-\contentsline {subsection}{\numberline {3.11}Удаление 2. Дисциплины вне сессии}{12}{subsection.3.11}%
-\contentsline {section}{\numberline {4}Задание 1.4. Контроль целостности}{12}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Постановка}{12}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Сводка}{12}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}Потерянное обновление}{12}{subsection.4.3}%
-\contentsline {subsection}{\numberline {4.4}Грязное и неповторяющееся чтение}{13}{subsection.4.4}%
-\contentsline {subsection}{\numberline {4.5}Фантом}{13}{subsection.4.5}%
-\contentsline {subsection}{\numberline {4.6}Сериализация}{13}{subsection.4.6}%
-\contentsline {subsection}{\numberline {4.7}Триггеры}{13}{subsection.4.7}%
-\contentsline {subsection}{\numberline {4.8}Выводы по заданию 1.4}{13}{subsection.4.8}%
-\contentsline {section}{\numberline {5}Задание 2.1. Управление доступом}{14}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Постановка}{14}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Права и представления}{14}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Проверка от имени test}{14}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}Выводы по заданию 2.1}{14}{subsection.5.4}%
-\contentsline {section}{\numberline {6}Задание 2.2. Функции и PL/pgSQL}{14}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Постановка}{14}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Назначение экзамена}{15}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}Ведомость преподавателя}{15}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}Перенос сессии группы}{15}{subsection.6.4}%
-\contentsline {subsection}{\numberline {6.5}Сводка факультета}{15}{subsection.6.5}%
-\contentsline {subsection}{\numberline {6.6}Функция против представления}{15}{subsection.6.6}%
-\contentsline {subsection}{\numberline {6.7}Выводы по заданию 2.2}{15}{subsection.6.7}%
-\contentsline {section}{Заключение}{16}{section*.9}%
+\contentsline {section}{Введение}{2}{section*.2}%
+\contentsline {section}{Задание 1.1. Проектирование схемы}{2}{section*.3}%
+\contentsline {subsection}{Постановка}{2}{section*.4}%
+\contentsline {subsection}{Назначение базы}{2}{section*.5}%
+\contentsline {subsection}{Сущности}{2}{section*.6}%
+\contentsline {section}{Задание 1.2. Создание и заполнение таблиц}{3}{section*.8}%
+\contentsline {subsection}{Постановка}{3}{section*.9}%
+\contentsline {subsection}{DDL}{3}{section*.10}%
+\contentsline {subsection}{Данные}{5}{section*.11}%
+\contentsline {section}{Задание 1.3. Операторы манипулирования}{7}{section*.12}%
+\contentsline {subsection}{Постановка}{7}{section*.13}%
+\contentsline {subsection}{Выборка 1. Нагрузка преподавателя}{8}{section*.14}%
+\contentsline {subsection}{Выборка 2. Дисциплины без сессии}{8}{section*.16}%
+\contentsline {subsection}{Выборка 3. Рейтинг групп}{8}{section*.17}%
+\contentsline {subsection}{Выборка 4. Ближайший контроль}{9}{section*.19}%
+\contentsline {subsection}{Изменение 1. Перевод четвёртого курса}{10}{section*.21}%
+\contentsline {subsection}{Изменение 2. Дифференцированный зачёт}{10}{section*.22}%
+\contentsline {subsection}{Вставка 1. Новая дисциплина и зачёт}{11}{section*.23}%
+\contentsline {subsection}{Вставка 2. Пересдача баз данных}{11}{section*.24}%
+\contentsline {subsection}{Удаление 1. Снятие пересдачи}{12}{section*.25}%
+\contentsline {subsection}{Удаление 2. Дисциплины вне сессии}{12}{section*.26}%
+\contentsline {section}{Заключение}{13}{section*.27}%
