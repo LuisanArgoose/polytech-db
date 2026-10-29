@@ -3400,6 +3400,182 @@ VALUES ('ИВТ-21', 'Базы данных', DATE '2026-07-01',
 завершились ошибками прав доступа, а исходные данные после проверки
 восстановлены.
 
+\section*{Задание 2.2. Функции и язык PL/pgSQL}
+\addcontentsline{toc}{section}{Задание 2.2. Функции и язык PL/pgSQL}
+
+Для упрощения работы с базой созданы четыре небольшие функции. Они не
+дублируют представления: функция получает параметры, выполняет вычисление
+или действие и возвращает результат. В скриптах использованы переменные,
+ветвления, цикл, явный курсор и обработка исключений.
+
+\subsection*{Характеристика учебной группы}
+\addcontentsline{toc}{subsection}{Характеристика учебной группы}
+Функция \texttt{fn\_group\_info} получает код группы, выбирает её курс и
+численность во внутренние переменные и через \texttt{IF} определяет,
+является ли группа большой. Если группы нет, возвращается понятное сообщение.
+\begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION exam.fn_group_info(p_group_code varchar)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+    v_students integer;
+    v_course smallint;
+    v_result text;
+BEGIN
+    SELECT "StudentCount", "CourseYear"
+    INTO v_students, v_course
+    FROM exam."StudentGroups"
+    WHERE "GroupCode" = p_group_code;
+
+    IF NOT FOUND THEN
+        RETURN 'Группа не найдена';
+    ELSIF v_students >= 25 THEN
+        v_result := 'Группа ' || p_group_code || ': ' || v_students
+                    || ' студентов, курс ' || v_course || ', большая группа';
+    ELSE
+        v_result := 'Группа ' || p_group_code || ': ' || v_students
+                    || ' студентов, курс ' || v_course || ', обычная группа';
+    END IF;
+    RETURN v_result;
+END;
+$$;
+\end{lstlisting}
+Проверка:
+\begin{lstlisting}[language=SQL]
+SELECT exam.fn_group_info('ИВТ-21');
+SELECT exam.fn_group_info('НЕ-СУЩЕСТВУЕТ');
+\end{lstlisting}
+\begin{lstlisting}
+Группа ИВТ-21: 25 студентов, курс 4, большая группа
+Группа не найдена
+\end{lstlisting}
+
+\subsection*{Подсчёт экзаменов с помощью курсора}
+\addcontentsline{toc}{subsection}{Подсчёт экзаменов с помощью курсора}
+Функция \texttt{fn\_count\_group\_exams} использует явный курсор
+\texttt{exam\_cursor}. В цикле выполняются \texttt{OPEN}, последовательные
+\texttt{FETCH} и \texttt{CLOSE}; переменная \texttt{v\_count} считает
+полученные строки.
+\begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION exam.fn_count_group_exams(p_group_code varchar)
+RETURNS integer LANGUAGE plpgsql AS $$
+DECLARE
+    v_exam record;
+    v_count integer := 0;
+    exam_cursor CURSOR FOR
+        SELECT e."Id"
+        FROM exam."ExamSessions" e
+        JOIN exam."StudentGroups" g ON g."Id" = e."StudentGroupId"
+        WHERE g."GroupCode" = p_group_code;
+BEGIN
+    OPEN exam_cursor;
+    LOOP
+        FETCH exam_cursor INTO v_exam;
+        EXIT WHEN NOT FOUND;
+        v_count := v_count + 1;
+    END LOOP;
+    CLOSE exam_cursor;
+    RETURN v_count;
+END;
+$$;
+\end{lstlisting}
+Проверка:
+\begin{lstlisting}[language=SQL]
+SELECT exam.fn_count_group_exams('ИВТ-21');
+\end{lstlisting}
+\begin{lstlisting}
+ fn_count_group_exams
+----------------------
+                    3
+\end{lstlisting}
+
+\subsection*{Изменение объёма дисциплины}
+\addcontentsline{toc}{subsection}{Изменение объёма дисциплины}
+Функция \texttt{fn\_change\_subject\_hours} изменяет количество часов
+дисциплины и возвращает новое значение. Ветвления проверяют нулевое и
+отрицательное изменение, а \texttt{RAISE EXCEPTION} сообщает об ошибке.
+Отдельно проверяется отсутствие дисциплины.
+\begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION exam.fn_change_subject_hours(
+    p_subject_name varchar, p_delta integer
+)
+RETURNS integer LANGUAGE plpgsql AS $$
+DECLARE
+    v_hours integer;
+BEGIN
+    IF p_delta = 0 THEN
+        RAISE EXCEPTION 'Изменение часов не должно быть равно нулю';
+    END IF;
+    IF p_delta < 0 THEN
+        RAISE EXCEPTION 'Изменение часов не может быть отрицательным';
+    END IF;
+    UPDATE exam."Subjects"
+    SET "TotalHours" = "TotalHours" + p_delta
+    WHERE "SubjectName" = p_subject_name
+    RETURNING "TotalHours" INTO v_hours;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Дисциплина не найдена: %', p_subject_name;
+    END IF;
+    RETURN v_hours;
+END;
+$$;
+\end{lstlisting}
+Вызов с параметром 4 временно увеличил объём <<Базы данных>> с 144 до 148.
+После проверки выполнен обратный UPDATE, поэтому исходное значение 144
+сохранено. При вызове с отрицательным параметром получено исключение:
+\begin{lstlisting}
+NOTICE: Проверка исключения: Изменение часов не может быть отрицательным
+\end{lstlisting}
+
+\subsection*{Расписание на дату}
+\addcontentsline{toc}{subsection}{Расписание на дату}
+Функция \texttt{fn\_schedule\_for\_date} использует цикл \texttt{FOR}
+по результату соединения четырёх таблиц. Строки постепенно добавляются
+в переменную \texttt{v\_result}. Если расписаний нет, ветвление возвращает
+соответствующее сообщение.
+\begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION exam.fn_schedule_for_date(p_exam_date date)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+    v_row record;
+    v_result text := '';
+BEGIN
+    FOR v_row IN
+        SELECT g."GroupCode", s."SubjectName", t."FullName"
+        FROM exam."ExamSessions" e
+        JOIN exam."StudentGroups" g ON g."Id" = e."StudentGroupId"
+        JOIN exam."Subjects" s ON s."Id" = e."SubjectId"
+        JOIN exam."Teachers" t ON t."Id" = e."TeacherId"
+        WHERE e."ExamDate" = p_exam_date
+        ORDER BY g."GroupCode"
+    LOOP
+        v_result := v_result || v_row."GroupCode" || ': '
+                    || v_row."SubjectName" || ' - '
+                    || v_row."FullName" || E'\\n';
+    END LOOP;
+    IF v_result = '' THEN
+        RETURN 'На указанную дату экзаменов нет';
+    END IF;
+    RETURN rtrim(v_result);
+END;
+$$;
+\end{lstlisting}
+Проверка для 12 января 2026 года вернула одну строку:
+\begin{lstlisting}
+ИВТ-21: Базы данных - Соколова Анна Петровна
+\end{lstlisting}
+
+\subsection*{Преимущества функций перед представлениями}
+\addcontentsline{toc}{subsection}{Преимущества функций перед представлениями}
+Представление сохраняет один запрос и удобно для постоянного чтения
+данных, но не принимает параметры в обычном варианте и не содержит
+процедурной логики. Функция может принимать параметры, использовать
+переменные, ветвления, циклы, курсоры и обработчики исключений. Она может
+вернуть одно значение или сформировать результат на основе входных данных,
+а также выполнить контролируемое изменение. Поэтому представления в работе
+используются как простой интерфейс выборки, а функции подходят для
+параметризованных операций и бизнес-проверок. Созданные четыре функции
+выполнены успешно, а исходный объём дисциплины после проверки восстановлен.
+
 \section*{Заключение}
 \addcontentsline{toc}{section}{Заключение}
 Собрана база учёта сессии из двух стержневых сущностей и одной ассоциативной. Идентификаторы сущностей~--- \texttt{UUID}, связи идут по ним, а код группы и название дисциплины остаются уникальными естественными ключами. База заполнена и проверена запросами с соединением, CTE, окном и коррелированным подзапросом. В PostgreSQL грязного чтения нет: READ UNCOMMITTED по поведению совпадает с READ COMMITTED. В проверенном сценарии SQL-инкрементов оба изменения сохраняются после ожидания блокировки строки. Неповторяющиеся чтения и фантомы наблюдаются на READ COMMITTED, но отсутствуют на REPEATABLE READ. Аномалия сериализации возникает на REPEATABLE READ; на SERIALIZABLE конфликтующая транзакция отменяется с SQLSTATE 40001 и требует полного повтора. Эти выводы подтверждены выполнением SQL-сценариев в двух независимых сеансах PostgreSQL 16.15. Триггеры проверяют условия, которые не выражаются столбцовым \texttt{CHECK}. Роли и представления отрезают пользователю \texttt{test} чужие столбцы и чужие таблицы. Функции принимают параметры, проверяют вход и возвращают текст ошибки.
