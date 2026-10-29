@@ -1,0 +1,90 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[a4paper,left=30mm,right=15mm,top=20mm,bottom=20mm]{geometry}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  tabsize=4,
+  showstringspaces=false
+}
+
+\begin{document}
+
+\begin{center}
+  \textbf{КОНТРОЛЬНАЯ РАБОТА}\\[0.5em]
+  по дисциплине «Базы данных»\\[1em]
+  \textbf{Вариант 19}
+\end{center}
+
+\vspace{1em}
+\noindent Выполнил: Лузан Роман\\[0.8em]
+\noindent Группа: в5130904/40321
+
+\section*{Вариант 19}
+Определить номера проектов, в которых используется по крайней мере одна деталь, имеющаяся у поставщика с номером \texttt{S1}.
+
+\section*{Обозначения}
+Используется классическая схема поставок:
+\begin{itemize}
+  \item $S(S\#, SNAME, STATUS, CITY)$ --- поставщики;
+  \item $P(P\#, PNAME, COLOR, WEIGHT, CITY)$ --- детали;
+  \item $J(J\#, JNAME, CITY)$ --- проекты;
+  \item $SPJ(S\#, P\#, J\#, QTY)$ --- поставки деталей поставщиками для проектов.
+\end{itemize}
+Атрибуты $S\#$, $P\#$ и $J\#$ являются номерами поставщика, детали и проекта соответственно. Имена проектов хранятся в отношении $J$ в атрибуте $JNAME$.
+
+\section*{Реляционная алгебра}
+Обозначим две копии отношения поставок через $SPJ_1$ и $SPJ_2$. Первая копия задаёт детали, имеющиеся у поставщика \texttt{S1}; вторая связывает эти детали с проектами, где они используются. Проекция возвращает номера проектов без повторов:
+\[
+\pi_{SPJ_2.J\#}\Bigl(\sigma_{SPJ_1.S\#='S1' \land SPJ_1.P\#=SPJ_2.P\#}(\rho_{SPJ_1}(SPJ) \times \rho_{SPJ_2}(SPJ))\Bigr).
+\]
+
+\section*{Реляционное исчисление}
+Номер проекта включается в результат, если существует поставка детали этому проекту и существует поставка той же детали от поставщика \texttt{S1}:
+\[
+\{\, t.J\# \mid SPJ(t) \land \exists u\,(SPJ(u) \land u.S\#='S1' \land u.P\#=t.P\#)\,\}.
+\]
+
+\section*{Запрос SQL}
+\begin{lstlisting}[language=SQL]
+SELECT DISTINCT project_supply."J#"
+FROM "SPJ" AS project_supply
+WHERE EXISTS (
+    SELECT 1
+    FROM "SPJ" AS s1
+    WHERE s1."S#" = 'S1'
+      AND s1."P#" = project_supply."P#"
+)
+ORDER BY project_supply."J#";
+\end{lstlisting}
+Условие \texttt{EXISTS} проверяет, что деталь из поставки проекта также присутствует среди деталей, поставляемых \texttt{S1}. \texttt{DISTINCT} оставляет каждый номер проекта в результате один раз.
+
+\section*{Результат}
+В стандартном учебном наборе данных детали поставщика \texttt{S1} используются в проектах:
+\begin{center}
+\begin{tabular}{c}
+\toprule
+Номер проекта \\
+\midrule
+J1 \\
+J4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{Ответ}
+Номера проектов, в которых используется хотя бы одна деталь, имеющаяся у поставщика \texttt{S1}: \textbf{J1, J4}.
+
+\end{document}
