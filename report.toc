@@ -27,4 +27,6 @@
 \contentsline {subsection}{Неповторяющееся чтение (Non-Repeatable Read)}{22}{section*.31}%
 \contentsline {subsection}{Фантомы (Phantom Read)}{28}{section*.32}%
 \contentsline {subsection}{Аномалия сериализации (Serialization Anomaly)}{35}{section*.33}%
-\contentsline {section}{Заключение}{47}{section*.35}%
+\contentsline {subsection}{Приведение кода группы к единому виду}{47}{section*.34}%
+\contentsline {subsection}{Запрет удаления группы с экзаменами}{47}{section*.35}%
+\contentsline {section}{Заключение}{48}{section*.36}%

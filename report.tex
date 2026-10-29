@@ -3178,14 +3178,65 @@ ORDER BY "GroupCode";
 
 \textbf{Вывод для SERIALIZABLE:} фиксация аномалии предотвращена ошибкой 40001. После полного повтора B получен результат \((26,26)\), соответствующий последовательному порядку A--B.
 
-\subsection*{Триггеры}
-Создан скрипт \texttt{sql/04\_triggers.sql} с двумя триггерами:
-\begin{enumerate}
-\item \texttt{trg\_studentgroup\_check\_nonneg} проверяет \(\texttt{StudentCount} \geq 0\) перед UPDATE/INSERT и откатывает транзакцию при нарушении.
-\item \texttt{trg\_examsession\_teacher\_conflict} не позволяет ставить одного преподавателя на две группы одновременно в одну дату.
-\end{enumerate}
+\subsection*{Приведение кода группы к единому виду}
+\addcontentsline{toc}{subsection}{Приведение кода группы к единому виду}
+Триггер \texttt{trg\_normalize\_group\_code} выполняется перед вставкой
+группы и перед изменением её кода. Функция удаляет пробелы по краям
+с помощью \texttt{btrim}, переводит буквы в верхний регистр функцией
+\texttt{upper} и записывает результат в \texttt{NEW."GroupCode"}.
+Пустой код, в том числе состоящий только из пробелов, отклоняется.
+Так обозначения одной группы не различаются регистром и лишними пробелами.
 
-Продемонстрировано: корректное изменение сохраняет целостность; попытка записи некорректного значения или конфликта вызывает откат транзакции.
+\begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION exam.fn_normalize_group_code()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW."GroupCode" := upper(btrim(NEW."GroupCode"));
+    IF NEW."GroupCode" IS NULL OR NEW."GroupCode" = '' THEN
+        RAISE EXCEPTION 'Код группы не должен быть пустым';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_normalize_group_code ON exam."StudentGroups";
+CREATE TRIGGER trg_normalize_group_code
+BEFORE INSERT OR UPDATE OF "GroupCode" ON exam."StudentGroups"
+FOR EACH ROW EXECUTE FUNCTION exam.fn_normalize_group_code();
+\end{lstlisting}
+
+\subsection*{Запрет удаления группы с экзаменами}
+\addcontentsline{toc}{subsection}{Запрет удаления группы с экзаменами}
+Триггер \texttt{trg\_prevent\_group\_delete} выполняется перед удалением
+строки группы. По \texttt{OLD."Id"} функция проверяет наличие записей
+в \texttt{exam."ExamSessions"}. Если экзамены есть, возникает исключение;
+иначе возвращается \texttt{OLD} и удаление разрешается.
+Это предотвращает случайное удаление расписания: внешний ключ исходной
+схемы имеет действие \texttt{ON DELETE CASCADE}.
+
+\begin{lstlisting}[language=SQL]
+CREATE OR REPLACE FUNCTION exam.fn_prevent_group_delete()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM exam."ExamSessions"
+        WHERE "StudentGroupId" = OLD."Id"
+    ) THEN
+        RAISE EXCEPTION 'Нельзя удалить группу: для неё есть экзамены';
+    END IF;
+    RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_group_delete ON exam."StudentGroups";
+CREATE TRIGGER trg_prevent_group_delete
+BEFORE DELETE ON exam."StudentGroups"
+FOR EACH ROW EXECUTE FUNCTION exam.fn_prevent_group_delete();
+\end{lstlisting}
 
 \section*{Заключение}
 \addcontentsline{toc}{section}{Заключение}
