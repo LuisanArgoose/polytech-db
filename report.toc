@@ -29,4 +29,11 @@
 \contentsline {subsection}{Аномалия сериализации (Serialization Anomaly)}{35}{section*.33}%
 \contentsline {subsection}{Приведение кода группы к единому виду}{47}{section*.34}%
 \contentsline {subsection}{Запрет удаления группы с экзаменами}{47}{section*.35}%
-\contentsline {section}{Заключение}{48}{section*.36}%
+\contentsline {section}{Раздел 2. Роли, права и хранимые процедуры}{48}{section*.36}%
+\contentsline {section}{Задание 2.1. Управление доступом}{48}{section*.37}%
+\contentsline {subsection}{Создание пользователя и распределение прав}{48}{section*.38}%
+\contentsline {subsection}{Представления и стандартная роль}{50}{section*.39}%
+\contentsline {subsection}{Проверка работы от имени test}{50}{section*.40}%
+\contentsline {subsection}{Вставка в многотабличное представление}{51}{section*.41}%
+\contentsline {subsection}{Итог задания 2.1}{52}{section*.42}%
+\contentsline {section}{Заключение}{52}{section*.43}%

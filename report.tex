@@ -3238,6 +3238,168 @@ BEFORE DELETE ON exam."StudentGroups"
 FOR EACH ROW EXECUTE FUNCTION exam.fn_prevent_group_delete();
 \end{lstlisting}
 
+\section*{Раздел 2. Роли, права и хранимые процедуры}
+\addcontentsline{toc}{section}{Раздел 2. Роли, права и хранимые процедуры}
+В разделе рассмотрено управление доступом к базе данных экзаменационной
+сессии. Реализованы пользователь \texttt{test}, стандартная роль
+\texttt{exam\_editor}, различающиеся права на таблицы и представления,
+а также вставка в многотабличное представление.
+
+\section*{Задание 2.1. Управление доступом}
+\addcontentsline{toc}{section}{Задание 2.1. Управление доступом}
+
+\subsection*{Создание пользователя и распределение прав}
+\addcontentsline{toc}{subsection}{Создание пользователя и распределение прав}
+Пользователю \texttt{test} предоставлено право подключения к базе
+\texttt{examdb} и использования схемы \texttt{exam}. Права на таблицы
+распределены следующим образом:
+\begin{itemize}
+\item \texttt{StudentGroups}: полный \texttt{SELECT}, \texttt{INSERT},
+\texttt{UPDATE} без права удаления;
+\item \texttt{Subjects}: полный \texttt{SELECT} и \texttt{UPDATE} только
+столбца \texttt{TotalHours};
+\item \texttt{Teachers}: только \texttt{SELECT};
+\item \texttt{ExamSessions} и \texttt{Faculties}: прямого доступа нет.
+\end{itemize}
+Скрипт настройки прав:
+\lstinputlisting[language=SQL]{sql/05_access.sql}
+
+\subsection*{Представления и стандартная роль}
+\addcontentsline{toc}{subsection}{Представления и стандартная роль}
+Созданы два представления. Однотабличное \texttt{v\_group\_load}
+показывает только код группы, курс и численность. Многотабличное
+\texttt{v\_exam\_schedule} соединяет группы, дисциплины, экзамены и
+преподавателей, скрывая UUID и показывая только данные расписания.
+
+Роль \texttt{exam\_editor} не предназначена для входа в систему
+(атрибут \texttt{NOLOGIN}). Ей предоставлены \texttt{SELECT} и
+\texttt{UPDATE} только столбца \texttt{StudentCount} представления
+\texttt{v\_group\_load}. Затем роль назначена пользователю \texttt{test}.
+Для вставки в многотабличное представление создан триггер
+\texttt{INSTEAD OF INSERT}. Он по естественным ключам находит группу,
+дисциплину и преподавателя и вставляет соответствующие UUID в
+\texttt{ExamSessions}.
+
+\subsection*{Проверка работы от имени test}
+\addcontentsline{toc}{subsection}{Проверка работы от имени test}
+Проверка выполнена подключением от имени пользователя \texttt{test}.
+В начале сеанса проверены текущий пользователь и права командой \texttt{\\dp}:
+\begin{lstlisting}
+ session_user | current_user
+--------------+--------------
+ test         | test
+\end{lstlisting}
+Фрагмент результата \texttt{\\dp exam.*}:
+\begin{lstlisting}
+Name            | Type  | Access privileges
+----------------+-------+------------------------------
+StudentGroups   | table | test=arw/postgres
+Subjects        | table | test=r/postgres
+                |       | TotalHours: test=w/postgres
+Teachers        | table | test=r/postgres
+ExamSessions    | table |
+Faculties       | table |
+v_group_load    | view  | exam_editor=r/postgres
+                |       | StudentCount: exam_editor=w/postgres
+v_exam_schedule | view  | test=ar/postgres
+\end{lstlisting}
+В обозначениях \texttt{\\dp}: \texttt{r}~--- SELECT, \texttt{a}~---
+INSERT, \texttt{w}~--- UPDATE, \texttt{d}~--- DELETE, \texttt{D}~---
+TRUNCATE, \texttt{x}~--- REFERENCES, \texttt{t}~--- TRIGGER.
+В данном результате у \texttt{test} на \texttt{StudentGroups} имеются
+\texttt{arw}, на \texttt{Subjects}~--- \texttt{r} и столбцовое \texttt{w}
+только для \texttt{TotalHours}, а на \texttt{Teachers}~--- только \texttt{r}.
+
+Разрешённые выборки от имени \texttt{test} завершились успешно:
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "CourseYear", "StudentCount"
+FROM exam."StudentGroups" ORDER BY "GroupCode" LIMIT 2;
+SELECT "SubjectName", "TotalHours"
+FROM exam."Subjects" ORDER BY "SubjectName" LIMIT 2;
+SELECT "FullName" FROM exam."Teachers" ORDER BY "FullName" LIMIT 2;
+SELECT * FROM exam."v_group_load" ORDER BY "GroupCode" LIMIT 2;
+SELECT * FROM exam."v_exam_schedule" ORDER BY "ExamDate" LIMIT 2;
+\end{lstlisting}
+В частности, первые строки выборки групп:
+\begin{lstlisting}
+ GroupCode | CourseYear | StudentCount
+-----------+------------+-------------
+ ИБ-23     |          2 |           23
+ ИВТ-21    |          4 |           25
+\end{lstlisting}
+
+Разрешённое изменение численности было выполнено внутри транзакции
+и отменено после проверки:
+\begin{lstlisting}[language=SQL]
+BEGIN;
+UPDATE exam."StudentGroups"
+SET "StudentCount" = "StudentCount" + 1
+WHERE "GroupCode" = 'ИВТ-21';
+ROLLBACK;
+\end{lstlisting}
+\begin{lstlisting}
+BEGIN
+UPDATE 1
+ROLLBACK
+\end{lstlisting}
+Разрешённое изменение только выбранного столбца также завершилось успешно:
+\begin{lstlisting}[language=SQL]
+BEGIN;
+UPDATE exam."Subjects"
+SET "TotalHours" = "TotalHours" + 1
+WHERE "SubjectName" = 'Базы данных';
+ROLLBACK;
+\end{lstlisting}
+\begin{lstlisting}
+BEGIN
+UPDATE 1
+ROLLBACK
+\end{lstlisting}
+
+Попытка изменить запрещённый столбец \texttt{Department} завершилась ошибкой:
+\begin{lstlisting}[language=SQL]
+UPDATE exam."Subjects"
+SET "Department" = 'Кафедра доступа'
+WHERE "SubjectName" = 'Базы данных';
+\end{lstlisting}
+\begin{lstlisting}
+ERROR: permission denied for table Subjects
+\end{lstlisting}
+Удаление группы также запрещено, поскольку право \texttt{DELETE} не выдавалось:
+\begin{lstlisting}
+ERROR: permission denied for table StudentGroups
+\end{lstlisting}
+
+\subsection*{Вставка в многотабличное представление}
+\addcontentsline{toc}{subsection}{Вставка в многотабличное представление}
+От имени \texttt{test} выполнена вставка в \texttt{v\_exam\_schedule}:
+\begin{lstlisting}[language=SQL]
+INSERT INTO exam."v_exam_schedule"
+    ("GroupCode", "SubjectName", "ExamDate",
+     "TeacherFullName", "AssessmentType")
+VALUES ('ИВТ-21', 'Базы данных', DATE '2026-07-01',
+        'Соколова Анна Петровна', 'Экзамен');
+\end{lstlisting}
+После срабатывания триггера представления проверочный SELECT вернул:
+\begin{lstlisting}
+ GroupCode | SubjectName |  ExamDate  |    TeacherFullName     | AssessmentType
+-----------+-------------+------------+------------------------+----------------
+ ИВТ-21    | Базы данных | 2026-07-01 | Соколова Анна Петровна | Экзамен
+\end{lstlisting}
+Таким образом, пользователь не получил прямого права INSERT на
+\texttt{ExamSessions}, но смог добавить экзамен через ограниченное
+многотабличное представление. После проверки тестовая строка была удалена;
+в исходной базе осталось 22 экзамена.
+
+\subsection*{Итог задания 2.1}
+\addcontentsline{toc}{subsection}{Итог задания 2.1}
+Пользователь \texttt{test} создан и получил доступ к базе. Проверено
+различие полномочий на таблицах, столбочное право UPDATE, доступ к
+однотабличному и многотабличному представлениям, назначение стандартной
+роли и вставка через \texttt{INSTEAD OF INSERT}. Запрещённые действия
+завершились ошибками прав доступа, а исходные данные после проверки
+восстановлены.
+
 \section*{Заключение}
 \addcontentsline{toc}{section}{Заключение}
 Собрана база учёта сессии из двух стержневых сущностей и одной ассоциативной. Идентификаторы сущностей~--- \texttt{UUID}, связи идут по ним, а код группы и название дисциплины остаются уникальными естественными ключами. База заполнена и проверена запросами с соединением, CTE, окном и коррелированным подзапросом. В PostgreSQL грязного чтения нет: READ UNCOMMITTED по поведению совпадает с READ COMMITTED. В проверенном сценарии SQL-инкрементов оба изменения сохраняются после ожидания блокировки строки. Неповторяющиеся чтения и фантомы наблюдаются на READ COMMITTED, но отсутствуют на REPEATABLE READ. Аномалия сериализации возникает на REPEATABLE READ; на SERIALIZABLE конфликтующая транзакция отменяется с SQLSTATE 40001 и требует полного повтора. Эти выводы подтверждены выполнением SQL-сценариев в двух независимых сеансах PostgreSQL 16.15. Триггеры проверяют условия, которые не выражаются столбцовым \texttt{CHECK}. Роли и представления отрезают пользователю \texttt{test} чужие столбцы и чужие таблицы. Функции принимают параметры, проверяют вход и возвращают текст ошибки.
