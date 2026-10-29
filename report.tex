@@ -1,4 +1,4 @@
-﻿\documentclass[12pt,a4paper]{article}
+\documentclass[12pt,a4paper]{article}
 \usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[russian]{babel}
@@ -440,9 +440,1667 @@ DELETE 1
 
 Криптографические методы сохранены: на них ссылается зачёт ИБ-23. После удаления в таблице 13 дисциплин, и каждая встречается в сессии.
 
+\section*{Задание 1.4. Контроль целостности данных}
+\addcontentsline{toc}{section}{Задание 1.4. Контроль целостности данных}
+
+\subsection*{Аномалии транзакций}
+\addcontentsline{toc}{subsection}{Аномалии транзакций}
+
+Проверки выполнены в PostgreSQL 16.15 в двух независимых сеансах A и B. Ниже приведены команды в хронологическом порядке и полученные результаты. Использована отдельная тестовая копия структуры таблицы \texttt{exam."StudentGroups"}, доступная обоим сеансам через \texttt{search\_path} под именем \texttt{"StudentGroups"}. Внешние ключи и триггеры исходной таблицы в копию не переносились. Основные учебные данные не изменялись. Тестовые коды групп: IVT-21 и IVT-22.
+
+\subsection*{Потерянные изменения (Lost Update)}
+\addcontentsline{toc}{subsection}{Потерянные изменения (Lost Update)}
+
+Проверялось сохранение двух SQL-инкрементов: A прибавляет 5, B прибавляет 3. Ожидаемая численность после обеих операций: \(24+5+3=32\).
+
+\textbf{Проверка на READ COMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первое чтение: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Чтение до фиксации A: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка. Внутри A численность равна 29; COMMIT ещё не выполнен.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = "StudentCount" + 5
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Запрос отправлен и ожидает блокировку строки; ответ UPDATE ещё не получен.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = "StudentCount" + 3
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A зафиксирована, блокировка освобождена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Ожидавший UPDATE завершился: обновлена одна строка. Прибавка 3 применена к актуальному значению 29, получено 32.
+
+\textbf{Сеанс B.} B зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Итоговая проверка после обеих фиксаций: 32.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для READ COMMITTED:} потерянного изменения нет; обе прибавки сохранены.
+
+\textbf{Проверка на READ UNCOMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первое чтение: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Чтение до фиксации A: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка. Внутри A численность равна 29; COMMIT ещё не выполнен.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = "StudentCount" + 5
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Запрос отправлен и ожидает блокировку строки; ответ UPDATE ещё не получен.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = "StudentCount" + 3
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A зафиксирована, блокировка освобождена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Ожидавший UPDATE завершился: обновлена одна строка. Прибавка 3 применена к актуальному значению 29, получено 32.
+
+\textbf{Сеанс B.} B зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Итоговая проверка после обеих фиксаций: 32.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для READ UNCOMMITTED:} потерянного изменения нет; обе прибавки сохранены.
+
+\subsection*{Грязное чтение (Dirty Read)}
+\addcontentsline{toc}{subsection}{Грязное чтение (Dirty Read)}
+
+Проверялась видимость незафиксированного изменения другой транзакции. A записывает 999 вместо 24, затем отменяет изменение.
+
+\textbf{Проверка на READ COMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка; COMMIT не выполняется.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = 999
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Чтение при незавершённой A: 24, а не 999.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Незафиксированное значение 999 отменено.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Повторное чтение после отката A: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Транзакция чтения завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Итоговая проверка: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для READ COMMITTED:} грязного чтения нет; значение 999 другому сеансу недоступно.
+
+\textbf{Проверка на READ UNCOMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка; COMMIT не выполняется.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = 999
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Чтение при незавершённой A: 24, а не 999.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Незафиксированное значение 999 отменено.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Повторное чтение после отката A: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Транзакция чтения завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Итоговая проверка: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для READ UNCOMMITTED:} грязного чтения нет; значение 999 другому сеансу недоступно.
+
+\subsection*{Неповторяющееся чтение (Non-Repeatable Read)}
+\addcontentsline{toc}{subsection}{Неповторяющееся чтение (Non-Repeatable Read)}
+
+Проверялось повторное чтение одной строки в A до и после фиксации изменения в B.
+
+\textbf{Проверка на READ COMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первое чтение: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена одна строка; новое значение 30 ещё не зафиксировано.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = 30
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Значение 30 зафиксировано.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Второе чтение внутри той же транзакции: 30.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Транзакция A завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Чтение после завершения A: 30; изменение B сохранено.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для READ COMMITTED:} неповторяющееся чтение наблюдается: внутри A значение изменилось с 24 на 30.
+
+\textbf{Проверка на READ UNCOMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первое чтение: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена одна строка; новое значение 30 ещё не зафиксировано.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = 30
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Значение 30 зафиксировано.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Второе чтение внутри той же транзакции: 30.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Транзакция A завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Чтение после завершения A: 30; изменение B сохранено.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для READ UNCOMMITTED:} неповторяющееся чтение наблюдается: внутри A значение изменилось с 24 на 30.
+
+\textbf{Проверка на REPEATABLE READ.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первое чтение: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена одна строка; новое значение 30 ещё не зафиксировано.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" = 30
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Значение 30 зафиксировано.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Второе чтение внутри той же транзакции: 24.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} Транзакция A завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Чтение после завершения A: 30; изменение B сохранено.
+\begin{lstlisting}[language=SQL]
+SELECT "StudentCount" FROM "StudentGroups"
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Вывод для REPEATABLE READ:} неповторяющегося чтения нет: оба чтения внутри A дали 24.
+
+\subsection*{Фантомы (Phantom Read)}
+\addcontentsline{toc}{subsection}{Фантомы (Phantom Read)}
+
+Проверялось изменение количества групп четвёртого курса при повторном выполнении одного условия в транзакции A.
+
+\textbf{Проверка на READ COMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ COMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ COMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read committed.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первый подсчёт: 2.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Вставлена одна новая группа четвёртого курса; вставка пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES ('00000000-0000-0000-0000-000000000003', 'TEST-4', 4, 20,
+        '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс B.} Вставка зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Второй подсчёт внутри той же транзакции: 3.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Транзакция A завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Подсчёт после завершения A: 3; вставленная строка сохранена.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Вывод для READ COMMITTED:} фантомное чтение наблюдается: количество строк внутри A изменилось с 2 на 3.
+
+\textbf{Проверка на READ UNCOMMITTED.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем READ UNCOMMITTED.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: read uncommitted.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первый подсчёт: 2.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Вставлена одна новая группа четвёртого курса; вставка пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES ('00000000-0000-0000-0000-000000000003', 'TEST-4', 4, 20,
+        '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс B.} Вставка зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Второй подсчёт внутри той же транзакции: 3.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Транзакция A завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Подсчёт после завершения A: 3; вставленная строка сохранена.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Вывод для READ UNCOMMITTED:} фантомное чтение наблюдается: количество строк внутри A изменилось с 2 на 3.
+
+\textbf{Проверка на REPEATABLE READ.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Первый подсчёт: 2.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Вставлена одна новая группа четвёртого курса; вставка пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES ('00000000-0000-0000-0000-000000000003', 'TEST-4', 4, 20,
+        '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс B.} Вставка зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Второй подсчёт внутри той же транзакции: 2.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Транзакция A завершена.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Подсчёт после завершения A: 3; вставленная строка сохранена.
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) FROM "StudentGroups" WHERE "CourseYear" = 4;
+\end{lstlisting}
+
+\textbf{Вывод для REPEATABLE READ:} фантомного чтения нет: оба подсчёта внутри A дали 2.
+
+\subsection*{Аномалия сериализации (Serialization Anomaly)}
+\addcontentsline{toc}{subsection}{Аномалия сериализации (Serialization Anomaly)}
+
+A копирует численность IVT-22 в IVT-21, B копирует численность IVT-21 в IVT-22. Для каждого уровня проверены оба последовательных порядка и параллельное выполнение. Исходная пара равна \(24,26\); порядок значений в паре: IVT-21, IVT-22.
+
+\textbf{Уровень REPEATABLE READ. Последовательное выполнение A, затем B.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка: в IVT-21 записано 26.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-22')
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Прочитано зафиксированное значение IVT-21: 26. В IVT-22 записано 26.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс B.} B зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 26
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Уровень REPEATABLE READ. Последовательное выполнение B, затем A.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена одна строка: в IVT-22 записано 24.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс B.} B зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Прочитано зафиксированное значение IVT-22: 24. В IVT-21 записано 24.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-22')
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 24
+\end{lstlisting}
+
+\textbf{Уровень REPEATABLE READ. Параллельное выполнение.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем REPEATABLE READ.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: repeatable read.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка: IVT-21 получает 26. A пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-22')
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена другая строка: B читает старое зафиксированное значение IVT-21, равное 24, и записывает 24 в IVT-22. B пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A успешно зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс B.} B успешно зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 26
+ IVT-22    | 24
+\end{lstlisting}
+
+\textbf{Вывод для REPEATABLE READ:} получено \((26,24)\), что не совпадает ни с \((26,26)\) для A--B, ни с \((24,24)\) для B--A. Аномалия сериализации наблюдается.
+
+\textbf{Уровень SERIALIZABLE. Последовательное выполнение A, затем B.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка: в IVT-21 записано 26.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-22')
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Прочитано зафиксированное значение IVT-21: 26. В IVT-22 записано 26.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс B.} B зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 26
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Уровень SERIALIZABLE. Последовательное выполнение B, затем A.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена одна строка: в IVT-22 записано 24.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс B.} B зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Прочитано зафиксированное значение IVT-22: 24. В IVT-21 записано 24.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-22')
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 24
+\end{lstlisting}
+
+\textbf{Уровень SERIALIZABLE. Параллельное выполнение.}
+
+\textbf{Сеанс A.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Завершение возможной предыдущей транзакции. Вне транзакции команда не меняет данные.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Очистка тестовой таблицы вне явной транзакции; изменение сразу зафиксировано.
+\begin{lstlisting}[language=SQL]
+TRUNCATE "StudentGroups";
+\end{lstlisting}
+
+\textbf{Сеанс A.} Восстановление исходных данных вне явной транзакции: вставлены и зафиксированы две строки.
+\begin{lstlisting}[language=SQL]
+INSERT INTO "StudentGroups"
+    ("Id", "GroupCode", "CourseYear", "StudentCount", "FacultyId")
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,
+     '00000000-0000-0000-0000-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,
+     '00000000-0000-0000-0000-000000000010');
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 24
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Сеанс A.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Обновлена одна строка: IVT-21 получает 26. A пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-22')
+WHERE "GroupCode" = 'IVT-21';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Обновлена другая строка: B читает старое зафиксированное значение IVT-21, равное 24, и записывает 24 в IVT-22. B пока не зафиксирована.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс A.} A успешно зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Фиксация отклонена с SQLSTATE 40001; изменение B отменено.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\begin{lstlisting}
+ERROR: 40001: could not serialize access due to read/write dependencies among transactions
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 26
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Повтор отменённой B целиком.}
+
+\textbf{Сеанс B.} Открытие транзакции с уровнем SERIALIZABLE.
+\begin{lstlisting}[language=SQL]
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+\end{lstlisting}
+
+\textbf{Сеанс B.} Результат: serializable.
+\begin{lstlisting}[language=SQL]
+SHOW transaction_isolation;
+\end{lstlisting}
+
+\textbf{Сеанс B.} В новой транзакции прочитано значение 26; в IVT-22 записано 26.
+\begin{lstlisting}[language=SQL]
+UPDATE "StudentGroups" SET "StudentCount" =
+    (SELECT "StudentCount" FROM "StudentGroups" WHERE "GroupCode" = 'IVT-21')
+WHERE "GroupCode" = 'IVT-22';
+\end{lstlisting}
+
+\textbf{Сеанс B.} Повторная B успешно зафиксирована.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\textbf{Сеанс A.} Проверочная выборка после завершения транзакций.
+\begin{lstlisting}[language=SQL]
+SELECT "GroupCode", "StudentCount" FROM "StudentGroups"
+ORDER BY "GroupCode";
+\end{lstlisting}
+
+\begin{lstlisting}
+ GroupCode | StudentCount
+-----------+-------------
+ IVT-21    | 26
+ IVT-22    | 26
+\end{lstlisting}
+
+\textbf{Вывод для SERIALIZABLE:} фиксация аномалии предотвращена ошибкой 40001. После полного повтора B получен результат \((26,26)\), соответствующий последовательному порядку A--B.
+
+\subsection*{Триггеры}
+Создан скрипт \texttt{sql/04\_triggers.sql} с двумя триггерами:
+\begin{enumerate}
+\item \texttt{trg\_studentgroup\_check\_nonneg} проверяет \(\texttt{StudentCount} \geq 0\) перед UPDATE/INSERT и откатывает транзакцию при нарушении.
+\item \texttt{trg\_examsession\_teacher\_conflict} не позволяет ставить одного преподавателя на две группы одновременно в одну дату.
+\end{enumerate}
+
+Продемонстрировано: корректное изменение сохраняет целостность; попытка записи некорректного значения или конфликта вызывает откат транзакции.
+
 \section*{Заключение}
 \addcontentsline{toc}{section}{Заключение}
-Собрана база учёта сессии из двух стержневых сущностей и одной ассоциативной. Идентификаторы сущностей~--- \texttt{UUID}, связи идут по ним, а код группы и название дисциплины остаются уникальными естественными ключами. База заполнена и проверена запросами с соединением, CTE, окном и коррелированным подзапросом. В PostgreSQL грязного чтения нет: READ UNCOMMITTED совпадает с READ COMMITTED. Потерянное обновление закрыто блокировкой строки. Аномалия сериализации возникает на REPEATABLE READ и откатывается на SERIALIZABLE. Триггеры проверяют условия, которые не выражаются столбцовым \texttt{CHECK}. Роли и представления отрезают пользователю \texttt{test} чужие столбцы и чужие таблицы. Функции принимают параметры, проверяют вход и возвращают текст ошибки.
+Собрана база учёта сессии из двух стержневых сущностей и одной ассоциативной. Идентификаторы сущностей~--- \texttt{UUID}, связи идут по ним, а код группы и название дисциплины остаются уникальными естественными ключами. База заполнена и проверена запросами с соединением, CTE, окном и коррелированным подзапросом. В PostgreSQL грязного чтения нет: READ UNCOMMITTED по поведению совпадает с READ COMMITTED. В проверенном сценарии SQL-инкрементов оба изменения сохраняются после ожидания блокировки строки. Неповторяющиеся чтения и фантомы наблюдаются на READ COMMITTED, но отсутствуют на REPEATABLE READ. Аномалия сериализации возникает на REPEATABLE READ; на SERIALIZABLE конфликтующая транзакция отменяется с SQLSTATE 40001 и требует полного повтора. Эти выводы подтверждены выполнением SQL-сценариев в двух независимых сеансах PostgreSQL 16.15. Триггеры проверяют условия, которые не выражаются столбцовым \texttt{CHECK}. Роли и представления отрезают пользователю \texttt{test} чужие столбцы и чужие таблицы. Функции принимают параметры, проверяют вход и возвращают текст ошибки.
 
 \end{document}
 

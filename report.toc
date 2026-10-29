@@ -20,4 +20,11 @@
 \contentsline {subsection}{Вставка 2. Пересдача баз данных}{11}{section*.24}%
 \contentsline {subsection}{Удаление 1. Снятие пересдачи}{12}{section*.25}%
 \contentsline {subsection}{Удаление 2. Дисциплины вне сессии}{12}{section*.26}%
-\contentsline {section}{Заключение}{13}{section*.27}%
+\contentsline {section}{Задание 1.4. Контроль целостности данных}{13}{section*.27}%
+\contentsline {subsection}{Аномалии транзакций}{13}{section*.28}%
+\contentsline {subsection}{Потерянные изменения (Lost Update)}{13}{section*.29}%
+\contentsline {subsection}{Грязное чтение (Dirty Read)}{16}{section*.30}%
+\contentsline {subsection}{Неповторяющееся чтение (Non-Repeatable Read)}{18}{section*.31}%
+\contentsline {subsection}{Фантомы (Phantom Read)}{22}{section*.32}%
+\contentsline {subsection}{Аномалия сериализации (Serialization Anomaly)}{26}{section*.33}%
+\contentsline {section}{Заключение}{35}{section*.35}%

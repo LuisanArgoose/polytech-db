@@ -1,0 +1,1750 @@
+{
+  "schema": "anomaly_0d97cfb9e2084b5b8e3cba1fe611bde7",
+  "results": [
+    {
+      "level": "READ COMMITTED",
+      "scenario": "lost_update_increments",
+      "final": [
+        "32"
+      ],
+      "anomaly": false
+    },
+    {
+      "level": "READ COMMITTED",
+      "scenario": "dirty_read",
+      "reads": [
+        [
+          "24"
+        ],
+        [
+          "24"
+        ]
+      ],
+      "anomaly": false
+    },
+    {
+      "level": "READ COMMITTED",
+      "scenario": "non_repeatable_read",
+      "reads": [
+        [
+          "24"
+        ],
+        [
+          "30"
+        ]
+      ],
+      "anomaly": true
+    },
+    {
+      "level": "READ COMMITTED",
+      "scenario": "phantom",
+      "reads": [
+        [
+          "2"
+        ],
+        [
+          "3"
+        ]
+      ],
+      "anomaly": true
+    },
+    {
+      "level": "READ UNCOMMITTED",
+      "scenario": "lost_update_increments",
+      "final": [
+        "32"
+      ],
+      "anomaly": false
+    },
+    {
+      "level": "READ UNCOMMITTED",
+      "scenario": "dirty_read",
+      "reads": [
+        [
+          "24"
+        ],
+        [
+          "24"
+        ]
+      ],
+      "anomaly": false
+    },
+    {
+      "level": "READ UNCOMMITTED",
+      "scenario": "non_repeatable_read",
+      "reads": [
+        [
+          "24"
+        ],
+        [
+          "30"
+        ]
+      ],
+      "anomaly": true
+    },
+    {
+      "level": "READ UNCOMMITTED",
+      "scenario": "phantom",
+      "reads": [
+        [
+          "2"
+        ],
+        [
+          "3"
+        ]
+      ],
+      "anomaly": true
+    },
+    {
+      "level": "REPEATABLE READ",
+      "scenario": "non_repeatable_read",
+      "reads": [
+        [
+          "24"
+        ],
+        [
+          "24"
+        ]
+      ],
+      "anomaly": false
+    },
+    {
+      "level": "REPEATABLE READ",
+      "scenario": "phantom",
+      "reads": [
+        [
+          "2"
+        ],
+        [
+          "2"
+        ]
+      ],
+      "anomaly": false
+    },
+    {
+      "level": "REPEATABLE READ",
+      "scenario": "serialization",
+      "sequential": [
+        [
+          "26",
+          "26"
+        ],
+        [
+          "24",
+          "24"
+        ]
+      ],
+      "parallel": [
+        "26",
+        "24"
+      ],
+      "sqlstate": "00000",
+      "anomaly": true
+    },
+    {
+      "level": "SERIALIZABLE",
+      "scenario": "serialization",
+      "sequential": [
+        [
+          "26",
+          "26"
+        ],
+        [
+          "24",
+          "24"
+        ]
+      ],
+      "parallel": [
+        "26",
+        "26"
+      ],
+      "sqlstate": "40001",
+      "anomaly": false
+    }
+  ],
+  "journal": [
+    {
+      "session": "A",
+      "sql": "SET client_encoding TO 'UTF8'; SET statement_timeout = '10s'; SET lock_timeout = '8s';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT pg_backend_pid();",
+      "output": [
+        "683"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SET client_encoding TO 'UTF8'; SET statement_timeout = '10s'; SET lock_timeout = '8s';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT pg_backend_pid();",
+      "output": [
+        "690"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT version();",
+      "output": [
+        "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT current_database();",
+      "output": [
+        "examdb"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "CREATE SCHEMA \"anomaly_0d97cfb9e2084b5b8e3cba1fe611bde7\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "CREATE TABLE \"anomaly_0d97cfb9e2084b5b8e3cba1fe611bde7\".\"StudentGroups\" (LIKE exam.\"StudentGroups\" INCLUDING ALL);",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SET search_path TO \"anomaly_0d97cfb9e2084b5b8e3cba1fe611bde7\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SET search_path TO \"anomaly_0d97cfb9e2084b5b8e3cba1fe611bde7\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = \"StudentCount\" + 5\n                      WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT 683 = ANY(pg_blocking_pids(690));",
+      "output": [
+        "f"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT 683 = ANY(pg_blocking_pids(690));",
+      "output": [
+        "t"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = \"StudentCount\" + 3\n                      WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "32"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = 999\n                      WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = 30\n                          WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "30"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ COMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read committed"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT COUNT(*) FROM \"StudentGroups\" WHERE \"CourseYear\" = 4;",
+      "output": [
+        "2"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "INSERT INTO \"StudentGroups\"\n                (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n                ('00000000-0000-0000-0000-000000000003', 'TEST-4', 4, 20,\n                 '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT COUNT(*) FROM \"StudentGroups\" WHERE \"CourseYear\" = 4;",
+      "output": [
+        "3"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = \"StudentCount\" + 5\n                      WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT 683 = ANY(pg_blocking_pids(690));",
+      "output": [
+        "f"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT 683 = ANY(pg_blocking_pids(690));",
+      "output": [
+        "t"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = \"StudentCount\" + 3\n                      WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "32"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = 999\n                      WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = 30\n                          WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "30"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL READ UNCOMMITTED;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "read uncommitted"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT COUNT(*) FROM \"StudentGroups\" WHERE \"CourseYear\" = 4;",
+      "output": [
+        "2"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "INSERT INTO \"StudentGroups\"\n                (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n                ('00000000-0000-0000-0000-000000000003', 'TEST-4', 4, 20,\n                 '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT COUNT(*) FROM \"StudentGroups\" WHERE \"CourseYear\" = 4;",
+      "output": [
+        "3"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "repeatable read"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "repeatable read"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" = 30\n                          WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "repeatable read"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "repeatable read"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT COUNT(*) FROM \"StudentGroups\" WHERE \"CourseYear\" = 4;",
+      "output": [
+        "2"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "INSERT INTO \"StudentGroups\"\n                (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n                ('00000000-0000-0000-0000-000000000003', 'TEST-4', 4, 20,\n                 '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT COUNT(*) FROM \"StudentGroups\" WHERE \"CourseYear\" = 4;",
+      "output": [
+        "2"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-22')\n    WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "26",
+        "26"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-22')\n    WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "24",
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "repeatable read"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "repeatable read"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-22')\n    WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "26",
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-22')\n    WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "26",
+        "26"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131",
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-22')\n    WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "24",
+        "24"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "TRUNCATE \"StudentGroups\";",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "INSERT INTO \"StudentGroups\"\n            (\"Id\", \"GroupCode\", \"CourseYear\", \"StudentCount\", \"FacultyId\") VALUES\n            ('00000000-0000-0000-0000-000000000001', 'IVT-21', 4, 24,\n             '00000000-0000-0000-0000-000000000010'),\n            ('00000000-0000-0000-0000-000000000002', 'IVT-22', 4, 26,\n             '00000000-0000-0000-0000-000000000010');",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "serializable"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "SHOW transaction_isolation;",
+      "output": [
+        "serializable"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-22')\n    WHERE \"GroupCode\" = 'IVT-21';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "40001"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "26",
+        "26"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+      "output": [
+        "ERROR:  40001: could not serialize access due to read/write dependencies among transactions",
+        "DETAIL:  Reason code: Canceled on identification as a pivot, during commit attempt.",
+        "HINT:  The transaction might succeed if retried.",
+        "LOCATION:  PreCommit_CheckForSerializationFailure, predicate.c:4662"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "UPDATE \"StudentGroups\" SET \"StudentCount\" =\n    (SELECT \"StudentCount\" FROM \"StudentGroups\" WHERE \"GroupCode\" = 'IVT-21')\n    WHERE \"GroupCode\" = 'IVT-22';",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "B",
+      "sql": "COMMIT;",
+      "output": [],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "SELECT \"StudentCount\" FROM \"StudentGroups\" ORDER BY \"GroupCode\";",
+      "output": [
+        "26",
+        "26"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "ROLLBACK;",
+      "output": [
+        "WARNING:  25P01: there is no transaction in progress",
+        "LOCATION:  UserAbortTransactionBlock, xact.c:4131"
+      ],
+      "sqlstate": "00000"
+    },
+    {
+      "session": "A",
+      "sql": "DROP SCHEMA IF EXISTS \"anomaly_0d97cfb9e2084b5b8e3cba1fe611bde7\" CASCADE;",
+      "output": [
+        "NOTICE:  00000: drop cascades to table \"StudentGroups\"",
+        "LOCATION:  reportDependentObjects, dependency.c:1232"
+      ],
+      "sqlstate": "00000"
+    }
+  ],
+  "success": true,
+  "server": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "database": "examdb",
+  "cleanup": true
+}
